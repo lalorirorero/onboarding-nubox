@@ -320,35 +320,105 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[v0] ===== /api/submit-to-zoho: INICIO =====")
 
-    const payload: ZohoPayload = await request.json()
-    const formData = payload.formData ?? ({} as ZohoPayload["formData"])
-    const safeEmpresa = {
-      ...formData.empresa,
-      modulosAdicionales: normalizeModulosAdicionales(formData.empresa?.modulosAdicionales),
+    const incomingPayload = (await request.json()) as Partial<ZohoPayload>
+    const incomingFormData = incomingPayload.formData ?? ({} as Partial<ZohoPayload["formData"]>)
+    const incomingEmpresa = incomingFormData.empresa ?? ({} as Partial<ZohoPayload["formData"]["empresa"]>)
+
+    // Normaliza y completa el payload para mantener estructura/orden estable en todos los pasos.
+    const safeEmpresa: ZohoPayload["formData"]["empresa"] = {
+      id_zoho: incomingEmpresa.id_zoho ?? incomingPayload.id_zoho ?? null,
+      razonSocial: incomingEmpresa.razonSocial || "",
+      nombreFantasia: incomingEmpresa.nombreFantasia || "",
+      rut: incomingEmpresa.rut || "",
+      giro: incomingEmpresa.giro || "",
+      direccion: incomingEmpresa.direccion || "",
+      comuna: incomingEmpresa.comuna || "",
+      emailFacturacion: incomingEmpresa.emailFacturacion || "",
+      telefonoContacto: incomingEmpresa.telefonoContacto || "",
+      ejecutivoTelefono: incomingEmpresa.ejecutivoTelefono || "",
+      ejecutivoNombre: incomingEmpresa.ejecutivoNombre || "",
+      sistema: Array.isArray(incomingEmpresa.sistema) ? incomingEmpresa.sistema : [],
+      modulosAdicionales: normalizeModulosAdicionales(incomingEmpresa.modulosAdicionales),
+      modulosAdicionalesOtro: incomingEmpresa.modulosAdicionalesOtro || "",
+      rubro: incomingEmpresa.rubro || "",
+      grupos: Array.isArray((incomingEmpresa as any).grupos) ? (incomingEmpresa as any).grupos : [],
     }
-    const safeFormData = {
-      ...formData,
-      empresa: safeEmpresa ?? ({} as ZohoPayload["formData"]["empresa"]),
-      admins: Array.isArray(formData.admins) ? formData.admins : [],
-      trabajadores: Array.isArray(formData.trabajadores) ? formData.trabajadores : [],
-      turnos: Array.isArray(formData.turnos) ? formData.turnos : [],
-      planificaciones: Array.isArray(formData.planificaciones) ? formData.planificaciones : [],
-      asignaciones: Array.isArray(formData.asignaciones) ? formData.asignaciones : [],
-      configureNow: Boolean(formData.configureNow),
+
+    const safeFormData: ZohoPayload["formData"] = {
+      empresa: safeEmpresa,
+      admins: Array.isArray(incomingFormData.admins) ? incomingFormData.admins : [],
+      trabajadores: Array.isArray(incomingFormData.trabajadores) ? incomingFormData.trabajadores : [],
+      turnos: Array.isArray(incomingFormData.turnos) ? incomingFormData.turnos : [],
+      planificaciones: Array.isArray(incomingFormData.planificaciones) ? incomingFormData.planificaciones : [],
+      asignaciones: Array.isArray(incomingFormData.asignaciones) ? incomingFormData.asignaciones : [],
+      configureNow: Boolean(incomingFormData.configureNow),
     }
-    payload.formData = safeFormData
-    if (!payload.excelUrls) {
-      payload.excelUrls = {
-        usuarios: { filename: "", url: "" },
-        planificaciones: { filename: "", url: "" },
-      }
+
+    const metadataPasoActual =
+      typeof incomingPayload.metadata?.pasoActual === "number"
+        ? incomingPayload.metadata.pasoActual
+        : typeof incomingPayload.currentStep === "number"
+          ? incomingPayload.currentStep
+          : 0
+    const metadataTotalPasos =
+      typeof incomingPayload.metadata?.totalPasos === "number" ? incomingPayload.metadata.totalPasos : 0
+    const metadataPorcentaje =
+      typeof incomingPayload.metadata?.porcentajeProgreso === "number" ? incomingPayload.metadata.porcentajeProgreso : 0
+    const metadataEmpresaRut = incomingPayload.metadata?.empresaRut || safeEmpresa.rut || "Sin RUT"
+    const metadataEmpresaNombre =
+      incomingPayload.metadata?.empresaNombre || safeEmpresa.razonSocial || safeEmpresa.nombreFantasia || "Sin nombre"
+    const metadataPasoNombre = incomingPayload.metadata?.pasoNombre || `Paso ${metadataPasoActual}`
+    const metadataTotalTrabajadores =
+      typeof incomingPayload.metadata?.totalTrabajadores === "number"
+        ? incomingPayload.metadata.totalTrabajadores
+        : safeFormData.trabajadores.length
+    const metadataTotalGrupos =
+      typeof incomingPayload.metadata?.totalGrupos === "number"
+        ? incomingPayload.metadata.totalGrupos
+        : safeEmpresa.grupos.length
+    const metadataDecision =
+      typeof incomingPayload.metadata?.decision === "string" ? incomingPayload.metadata.decision : ""
+
+    const payload: ZohoPayload = {
+      accion: incomingPayload.accion === "completado" ? "completado" : "progreso",
+      fechaHoraEnvio:
+        typeof incomingPayload.fechaHoraEnvio === "string" && incomingPayload.fechaHoraEnvio.trim() !== ""
+          ? incomingPayload.fechaHoraEnvio
+          : new Date().toISOString(),
+      eventType: incomingPayload.eventType === "complete" ? "complete" : "progress",
+      id_zoho: incomingPayload.id_zoho ?? safeEmpresa.id_zoho ?? null,
+      onboardingId: incomingPayload.onboardingId ?? null,
+      currentStep: typeof incomingPayload.currentStep === "number" ? incomingPayload.currentStep : metadataPasoActual,
+      navigationHistory: Array.isArray(incomingPayload.navigationHistory) ? incomingPayload.navigationHistory : [],
+      estado:
+        incomingPayload.estado ||
+        (incomingPayload.eventType === "complete" || incomingPayload.accion === "completado" ? "Completado" : "En Curso"),
+      fecha_completado: incomingPayload.fecha_completado ?? null,
+      totalTrabajadores:
+        typeof incomingPayload.totalTrabajadores === "number"
+          ? incomingPayload.totalTrabajadores
+          : safeFormData.trabajadores.length,
+      formData: safeFormData,
+      metadata: {
+        empresaRut: metadataEmpresaRut,
+        empresaNombre: metadataEmpresaNombre,
+        pasoActual: metadataPasoActual,
+        pasoNombre: metadataPasoNombre,
+        totalPasos: metadataTotalPasos,
+        porcentajeProgreso: metadataPorcentaje,
+        totalTrabajadores: metadataTotalTrabajadores,
+        totalGrupos: metadataTotalGrupos,
+        decision: metadataDecision,
+      },
+      excelUrls: {
+        usuarios: incomingPayload.excelUrls?.usuarios || { filename: "", url: "" },
+        planificaciones: incomingPayload.excelUrls?.planificaciones || { filename: "", url: "" },
+      },
+      excelUrlUsuarios: incomingPayload.excelUrlUsuarios || incomingPayload.excelUrls?.usuarios?.url || "",
+      excelUrlPlanificaciones:
+        incomingPayload.excelUrlPlanificaciones || incomingPayload.excelUrls?.planificaciones?.url || "",
+      excelFile: incomingPayload.excelFile ?? null,
     }
-    if (payload.excelUrls) {
-      payload.excelUrls.usuarios = payload.excelUrls.usuarios || { filename: "", url: "" }
-      payload.excelUrls.planificaciones = payload.excelUrls.planificaciones || { filename: "", url: "" }
-    }
-    if (!payload.excelUrlUsuarios) payload.excelUrlUsuarios = ""
-    if (!payload.excelUrlPlanificaciones) payload.excelUrlPlanificaciones = ""
 
     const historySupabaseUrl = process.env.SUPABASE_URL
     const historySupabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY

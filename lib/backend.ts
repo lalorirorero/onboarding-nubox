@@ -220,6 +220,11 @@ export interface ZohoPayload {
       modulosAdicionales: string[]
       modulosAdicionalesOtro: string
       rubro: string
+      grupos?: Array<{
+        id: number
+        nombre: string
+        descripcion?: string
+      }>
     }
     admins: Array<{
       nombre: string
@@ -262,6 +267,9 @@ export interface ZohoPayload {
     pasoNombre: string
     totalPasos: number
     porcentajeProgreso: number
+    totalTrabajadores?: number
+    totalGrupos?: number
+    decision?: string
   }
   excelUrls?: {
     usuarios?: {
