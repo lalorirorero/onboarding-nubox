@@ -5359,18 +5359,13 @@ function OnboardingTurnosCliente() {
               <Check className="w-12 h-12 text-white" />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-              ¡Felicidades, {formData.empresa.nombreFantasia || "empresa"}!
+              ¡Gracias por la información!
             </h1>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Tu configuración inicial de GeoVictoria está completa. Te contactaremos pronto para agendar tu
-              capacitación y resolver cualquier duda.
+              Ya estamos listos para crear tu empresa en GeoVictoria y comenzar tu implementación.
             </p>
-            <p className="text-sm text-slate-500 mt-4">
-              Mientras tanto, puedes explorar la plataforma o visitar nuestro{" "}
-              <a href="/soporte" className="text-sky-600 hover:underline">
-                centro de ayuda
-              </a>
-              .
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Pronto te llegará un correo con todos los detalles para avanzar.
             </p>
           </section>
         )
