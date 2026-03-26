@@ -29,27 +29,8 @@ const extractPrunedRows = (value: unknown) => {
   return Math.max(0, Math.trunc(parsed))
 }
 
-export async function GET(request: NextRequest) {
-  if (!isAuthorizedComplianceRequest(request)) {
-    return NextResponse.json<RetentionResponse>({ success: false, error: "No autorizado." }, { status: 401 })
-  }
-
-  return NextResponse.json<RetentionResponse>({
-    success: true,
-    executedAt: new Date().toISOString(),
-  })
-}
-
-export async function POST(request: NextRequest) {
-  if (!isAuthorizedComplianceRequest(request)) {
-    return NextResponse.json<RetentionResponse>({ success: false, error: "No autorizado." }, { status: 401 })
-  }
-
+const runRetention = async (retentionLimit: number, historyKeepDays: number) => {
   try {
-    const body = await request.json().catch(() => ({}))
-    const retentionLimit = toPositiveInt(body?.retentionLimit, 500, 1, 5000)
-    const historyKeepDays = toPositiveInt(body?.historyKeepDays, 180, 1, 3650)
-
     const supabase = getSupabaseServiceClient()
     if (!supabase) {
       return NextResponse.json<RetentionResponse>(
@@ -97,3 +78,33 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function GET(request: NextRequest) {
+  if (!isAuthorizedComplianceRequest(request)) {
+    return NextResponse.json<RetentionResponse>({ success: false, error: "No autorizado." }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const shouldRun = searchParams.get("run") === "true"
+
+  if (!shouldRun) {
+    return NextResponse.json<RetentionResponse>({
+      success: true,
+      executedAt: new Date().toISOString(),
+    })
+  }
+
+  const retentionLimit = toPositiveInt(searchParams.get("retentionLimit"), 500, 1, 5000)
+  const historyKeepDays = toPositiveInt(searchParams.get("historyKeepDays"), 180, 1, 3650)
+  return runRetention(retentionLimit, historyKeepDays)
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorizedComplianceRequest(request)) {
+    return NextResponse.json<RetentionResponse>({ success: false, error: "No autorizado." }, { status: 401 })
+  }
+
+  const body = await request.json().catch(() => ({}))
+  const retentionLimit = toPositiveInt(body?.retentionLimit, 500, 1, 5000)
+  const historyKeepDays = toPositiveInt(body?.historyKeepDays, 180, 1, 3650)
+  return runRetention(retentionLimit, historyKeepDays)
+}

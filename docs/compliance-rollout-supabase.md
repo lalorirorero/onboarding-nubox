@@ -63,6 +63,9 @@ Este documento resume como aplicar las migraciones de cumplimiento sin romper el
     - `historyKeepDays` (default `180`)
 - `GET /api/compliance/retention`
   - Health check del endpoint (requiere el mismo secreto cuando esta configurado).
+  - Si se invoca con `?run=true`, ejecuta retencion con defaults o con query params:
+    - `retentionLimit` (default `500`)
+    - `historyKeepDays` (default `180`)
 - `POST /api/compliance/data-subject-requests`
   - Registra una solicitud de derechos del titular.
   - `requestType` permitido:
@@ -77,6 +80,16 @@ Este documento resume como aplicar las migraciones de cumplimiento sin romper el
   - `x-cron-secret: <secret>`
   - `Authorization: Bearer <secret>`
 - Si no defines secreto, los endpoints quedan abiertos (solo recomendado para desarrollo local).
+
+### Automatizacion (Vercel Cron)
+
+- Se agrega `vercel.json` con ejecucion diaria:
+  - `GET /api/compliance/retention?run=true`
+  - Schedule: `0 6 * * *` (UTC).
+- Para proteger el cron en produccion:
+  - Definir `CRON_SECRET` en Vercel (Project Settings > Environment Variables).
+  - Vercel enviara `Authorization: Bearer <CRON_SECRET>`.
+  - El endpoint ya valida ese header via `isAuthorizedComplianceRequest(...)`.
 
 ## Integracion recomendada en API
 

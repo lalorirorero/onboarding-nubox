@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/compliance/retention?run=true",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
