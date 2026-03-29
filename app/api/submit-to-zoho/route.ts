@@ -446,11 +446,19 @@ export async function POST(request: NextRequest) {
       console.warn("[v0] /api/submit-to-zoho: Supabase env no disponible para onboarding_history.")
     }
 
-    console.log("[v0] /api/submit-to-zoho: Payload recibido")
-    console.log("[v0] /api/submit-to-zoho: id_zoho:", payload.id_zoho)
-    console.log("[v0] /api/submit-to-zoho: eventType:", payload.eventType)
-    console.log("[v0] /api/submit-to-zoho: accion:", payload.accion)
-    console.log("[v0] /api/submit-to-zoho: empresa:", safeFormData.empresa?.razonSocial)
+    console.log("[v0] /api/submit-to-zoho: Payload recibido", {
+      accion: payload.accion,
+      eventType: payload.eventType,
+      hasIdZoho: Boolean(payload.id_zoho),
+      hasOnboardingId: Boolean(payload.onboardingId),
+      totals: {
+        admins: safeFormData.admins.length,
+        trabajadores: safeFormData.trabajadores.length,
+        turnos: safeFormData.turnos.length,
+        planificaciones: safeFormData.planificaciones.length,
+        asignaciones: safeFormData.asignaciones.length,
+      },
+    })
     // </CHANGE>
 
     if (
@@ -521,11 +529,10 @@ export async function POST(request: NextRequest) {
           payload.excelUrlPlanificaciones = planificacionesSigned?.signedUrl || ""
           payload.excelFile = null
 
-          console.log(
-            "[v0] /api/submit-to-zoho: Excel subidos:",
-            payload.excelUrlUsuarios,
-            payload.excelUrlPlanificaciones,
-          )
+          console.log("[v0] /api/submit-to-zoho: Excel subidos correctamente", {
+            hasUsuariosUrl: Boolean(payload.excelUrlUsuarios),
+            hasPlanificacionesUrl: Boolean(payload.excelUrlPlanificaciones),
+          })
 
           const expiresAt = new Date(Date.now() + SIGNED_URL_TTL_SECONDS * 1000).toISOString()
           if (payload.onboardingId) {
@@ -588,7 +595,10 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] /api/submit-to-zoho: Llamando a sendToZohoFlow()...")
     const result = await sendToZohoFlow(payload)
-    console.log("[v0] /api/submit-to-zoho: Respuesta de sendToZohoFlow():", result)
+    console.log("[v0] /api/submit-to-zoho: Resultado sendToZohoFlow", {
+      success: result.success,
+      hasError: Boolean(result.error),
+    })
 
     if (result.success) {
       console.log("[v0] /api/submit-to-zoho: ✅ ÉXITO - Datos enviados a Zoho Flow")

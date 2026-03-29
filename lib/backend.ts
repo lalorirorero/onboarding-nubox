@@ -52,23 +52,26 @@ export interface FormData {
   configureNow: boolean
 }
 
+const getEncryptionSecret = () => {
+  const secret = process.env.ENCRYPTION_SECRET?.trim()
+  if (!secret) {
+    throw new Error("ENCRYPTION_SECRET no configurado")
+  }
+  return secret
+}
+
 // ============================================================================
 // ENCRIPTACIÓN/DESENCRIPTACIÓN
 // ============================================================================
 
 export async function encryptToken(empresaData: EmpresaData): Promise<string> {
   console.log("[v0] backend.encryptToken: Iniciando encriptación")
-  console.log("[v0] backend.encryptToken: Datos recibidos:", {
-    id_zoho: empresaData.id_zoho,
-    razonSocial: empresaData.razonSocial,
-    rut: empresaData.rut,
-  })
 
   const jsonString = JSON.stringify(empresaData)
   const encoder = new TextEncoder()
   const dataBuffer = encoder.encode(jsonString)
 
-  const secret = process.env.ENCRYPTION_SECRET || "default-secret-key"
+  const secret = getEncryptionSecret()
   const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "PBKDF2" }, false, [
     "deriveBits",
     "deriveKey",
@@ -106,7 +109,6 @@ export async function encryptToken(empresaData: EmpresaData): Promise<string> {
 export async function decryptToken(token: string): Promise<EmpresaData | null> {
   try {
     console.log("[v0] backend.decryptToken: Iniciando desencriptación")
-    console.log("[v0] backend.decryptToken: Token recibido:", token.substring(0, 20) + "...")
 
     if (!token || typeof token !== "string") {
       console.error("[v0] backend.decryptToken: Token inválido: debe ser una cadena no vacía")
@@ -140,7 +142,7 @@ export async function decryptToken(token: string): Promise<EmpresaData | null> {
       return null
     }
 
-    const secret = process.env.ENCRYPTION_SECRET || "default-secret-key"
+    const secret = getEncryptionSecret()
     const encoder = new TextEncoder()
     const keyMaterial = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "PBKDF2" }, false, [
       "deriveBits",
@@ -173,13 +175,7 @@ export async function decryptToken(token: string): Promise<EmpresaData | null> {
       return null
     }
 
-    console.log("[v0] backend.decryptToken: Desencriptación exitosa:", {
-      id_zoho: parsed.id_zoho,
-      razonSocial: parsed.razonSocial,
-      rut: parsed.rut,
-      hasAdmins: Array.isArray(parsed.admins),
-      hasTrabajadores: Array.isArray(parsed.trabajadores),
-    })
+    console.log("[v0] backend.decryptToken: Desencriptación exitosa")
 
     return parsed
   } catch (error) {
@@ -309,10 +305,13 @@ export async function sendToZohoFlow(payload: ZohoPayload): Promise<{
     }
   }
 
-  console.log("[v0] sendToZohoFlow: Preparando payload...")
-  console.log("[v0] sendToZohoFlow: id_zoho:", payload.id_zoho)
-  console.log("[v0] sendToZohoFlow: accion:", payload.accion)
-  console.log("[v0] sendToZohoFlow: Tamaño del payload:", JSON.stringify(payload).length, "bytes")
+  console.log("[v0] sendToZohoFlow: Preparando envío", {
+    accion: payload.accion,
+    eventType: payload.eventType,
+    hasOnboardingId: Boolean(payload.onboardingId),
+    hasIdZoho: Boolean(payload.id_zoho),
+    payloadSizeBytes: JSON.stringify(payload).length,
+  })
 
   try {
     console.log("[v0] sendToZohoFlow: Enviando POST request...")
@@ -324,16 +323,18 @@ export async function sendToZohoFlow(payload: ZohoPayload): Promise<{
     })
 
     console.log("[v0] sendToZohoFlow: Status:", response.status, response.statusText)
-    console.log("[v0] sendToZohoFlow: Headers:", Object.fromEntries(response.headers.entries()))
-
     const rawBody = await response.text()
 
     if (!response.ok) {
-      console.error("[v0] sendToZohoFlow: ❌ ERROR - Response body:", rawBody)
+      console.error("[v0] sendToZohoFlow: ❌ ERROR HTTP", {
+        status: response.status,
+        statusText: response.statusText,
+        responseLength: rawBody.length,
+      })
 
       return {
         success: false,
-        error: `Error ${response.status}: ${response.statusText} - ${rawBody}`,
+        error: `Error ${response.status}: ${response.statusText}`,
       }
     }
 
@@ -344,10 +345,10 @@ export async function sendToZohoFlow(payload: ZohoPayload): Promise<{
     } else {
       try {
         data = JSON.parse(rawBody)
-        console.log("[v0] sendToZohoFlow: ✅ Respuesta JSON de Zoho:", data)
+        console.log("[v0] sendToZohoFlow: ✅ Respuesta JSON recibida.")
       } catch (jsonError) {
         data = rawBody
-        console.log("[v0] sendToZohoFlow: ⚠️ Respuesta de Zoho (texto):", data)
+        console.log("[v0] sendToZohoFlow: ⚠️ Respuesta de Zoho en texto.")
       }
     }
 
@@ -380,10 +381,10 @@ export async function sendProgressWebhook(params: {
   idZoho: string | null
 }): Promise<void> {
   console.log("[v0] sendProgressWebhook: INICIO", {
-    params,
-    hasIdZoho: !!params.idZoho,
-    idZohoType: typeof params.idZoho,
     pasoActual: params.pasoActual,
+    pasoNombre: params.pasoNombre,
+    totalPasos: params.totalPasos,
+    hasIdZoho: !!params.idZoho,
   })
 
   if (!params.idZoho) {
@@ -437,7 +438,6 @@ export async function sendProgressWebhook(params: {
     excelFile: null,
   }
 
-  console.log("[v0] sendProgressWebhook: Payload construido", payload)
   console.log("[v0] sendProgressWebhook: Enviando a través de API...")
 
   try {
@@ -451,7 +451,6 @@ export async function sendProgressWebhook(params: {
 
     if (result.success) {
       console.log(`[v0] sendProgressWebhook: ✅ ÉXITO - Paso ${params.pasoActual}`)
-      console.log(`[v0] sendProgressWebhook: Respuesta de Zoho:`, result.data)
     } else {
       console.warn(`[v0] sendProgressWebhook: ⚠️ ERROR (no bloqueante):`, result.error)
     }

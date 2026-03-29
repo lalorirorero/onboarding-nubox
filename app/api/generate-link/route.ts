@@ -121,10 +121,8 @@ export async function POST(request: NextRequest) {
       loadWorkersNow: false,
     }
 
-    console.log("[v0] generate-link: Creando registro en BD:", {
-      id_zoho,
-      razonSocial: formData.empresa.razonSocial,
-      rut: formData.empresa.rut,
+    console.log("[v0] generate-link: Creando registro en BD", {
+      hasIdZoho: Boolean(id_zoho),
       sourceCrm,
       tokenExpiresAt,
     })
@@ -193,9 +191,8 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
     const link = `${baseUrl}?token=${token}`
 
-    console.log("[v0] generate-link: Registro creado exitosamente:", {
+    console.log("[v0] generate-link: Registro creado exitosamente", {
       id: data.id,
-      link,
       tokenExpiresAt,
     })
 

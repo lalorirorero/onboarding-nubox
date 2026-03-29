@@ -93,6 +93,12 @@ const stringifyPayload = (value: unknown, pretty = false) => {
   throw new Error("JSON.stringify no disponible en este entorno.")
 }
 
+const debugLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.log(...args)
+  }
+}
+
 const normalizeLegalText = (value: string) => value.replace(/\s+/g, " ").trim()
 
 const bytesToHex = (bytes: Uint8Array) => Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("")
@@ -384,7 +390,7 @@ const AdminStep = ({ admins, setAdmins, onRemoveAdmin, isEditMode }) => {
   }, [formData])
 
   const handleAddAdminClick = useCallback(() => {
-    console.log("[v0] ===== BOTÓN AGREGAR ADMIN CLICKEADO (desde AdminStep) =====")
+    debugLog("[v0] ===== BOTÓN AGREGAR ADMIN CLICKEADO (desde AdminStep) =====")
 
     const errors = validateAdminForm()
 
@@ -1388,11 +1394,11 @@ const TrabajadoresStep = ({
 
       // Solo limpiar si NO hay grupos ni trabajadores cargados desde BD
       if (grupos.length === 0 && trabajadores.length === 0) {
-        console.log("[v0] TrabajadoresStep mounted - Limpiando grupos previos (onboarding nuevo)")
+        debugLog("[v0] TrabajadoresStep mounted - Limpiando grupos previos (onboarding nuevo)")
         setGrupos([])
         grupoIdCounter.current = Date.now()
       } else {
-        console.log(
+        debugLog(
           "[v0] TrabajadoresStep mounted - Manteniendo grupos existentes:",
           grupos.length,
           "grupos y",
@@ -1424,8 +1430,8 @@ const TrabajadoresStep = ({
 
     setLocalFieldErrors({ byId: {}, global: [] })
 
-    console.log("[v0] === INICIO DE PARSEO DE EXCEL ===")
-    console.log("[v0] Total de líneas detectadas:", lines.length)
+    debugLog("[v0] === INICIO DE PARSEO DE EXCEL ===")
+    debugLog("[v0] Total de líneas detectadas:", lines.length)
 
     const parsedLines = lines
       .map((line) => line.split(/\t|;|,/).map((c) => c.trim()))
@@ -1439,7 +1445,7 @@ const TrabajadoresStep = ({
         return !looksLikeHeader
       })
 
-    console.log("[v0] Líneas parseadas (sin encabezados):", parsedLines.length)
+    debugLog("[v0] Líneas parseadas (sin encabezados):", parsedLines.length)
 
     if (parsedLines.length === 0) {
       setBulkStatus({ total: 0, added: 0, error: "No se detectaron filas válidas para procesar." })
@@ -1457,7 +1463,7 @@ const TrabajadoresStep = ({
 
     const nombreToId = new Map()
 
-    console.log(
+    debugLog(
       "[v0] Primeras 5 líneas parseadas:",
       parsedLines.slice(0, 5).map((cols) => ({
         rut: cols[0],
@@ -1530,12 +1536,12 @@ const TrabajadoresStep = ({
         const key = normalizeGroupName(grupoNombre)
         if (nombreToId.has(key)) {
           grupoId = nombreToId.get(key)
-          console.log(`[v0] Grupo existente reutilizado: "${grupoNombre}" -> ID: ${grupoId}`)
+          debugLog(`[v0] Grupo existente reutilizado: "${grupoNombre}" -> ID: ${grupoId}`)
         } else {
           const idObtenido = ensureGrupoByName(grupoNombre)
           grupoId = idObtenido
           nombreToId.set(key, idObtenido)
-          console.log(`[v0] Nuevo grupo creado: "${grupoNombre}" -> ID: ${idObtenido}`)
+          debugLog(`[v0] Nuevo grupo creado: "${grupoNombre}" -> ID: ${idObtenido}`)
         }
       }
 
@@ -1554,11 +1560,11 @@ const TrabajadoresStep = ({
       }
     })
 
-    console.log("[v0] === RESUMEN DE PROCESAMIENTO ===")
-    console.log("[v0] Total de trabajadores procesados:", nuevos.length)
-    console.log("[v0] Grupos únicos detectados:", nombreToId.size)
-    console.log("[v0] Mapa de grupos:", Array.from(nombreToId.entries()))
-    console.log(
+    debugLog("[v0] === RESUMEN DE PROCESAMIENTO ===")
+    debugLog("[v0] Total de trabajadores procesados:", nuevos.length)
+    debugLog("[v0] Grupos únicos detectados:", nombreToId.size)
+    debugLog("[v0] Mapa de grupos:", Array.from(nombreToId.entries()))
+    debugLog(
       "[v0] Distribución de trabajadores por grupo:",
       nuevos.reduce((acc, t) => {
         const grupoNombre = parsedLines[nuevos.indexOf(t)][4] || "Sin grupo"
@@ -5183,12 +5189,12 @@ const NavigationButtons = () => {
 
   const handleNext = () => {
     // Implement navigation logic here, possibly calling a goNext function from the parent component
-    console.log("Next clicked")
+    debugLog("Next clicked")
   }
 
   const handleBack = () => {
     // Implement navigation logic here, possibly calling a goBack function from the parent component
-    console.log("Back clicked")
+    debugLog("Back clicked")
   }
 
   // This is a placeholder. The actual navigation logic needs to be passed down or managed globally.
@@ -5495,7 +5501,7 @@ function OnboardingTurnosCliente() {
       const existingGrupo = grupos.find((g) => normalizeGroupName(g.nombre) === normalizedNombre)
 
       if (existingGrupo) {
-        console.log(`[v0] Grupo existente reutilizado: "${trimmedNombre}" -> ID: ${existingGrupo.id}`)
+        debugLog(`[v0] Grupo existente reutilizado: "${trimmedNombre}" -> ID: ${existingGrupo.id}`)
         return String(existingGrupo.id)
       } else {
         const newId = grupoIdCounterRef.current++
@@ -5509,7 +5515,7 @@ function OnboardingTurnosCliente() {
           ...prev,
           empresa: { ...prev.empresa, grupos: [...prev.empresa.grupos, newGrupo] },
         }))
-        console.log(`[v0] Nuevo grupo creado: "${trimmedNombre}" -> ID: ${newGrupo.id}`)
+        debugLog(`[v0] Nuevo grupo creado: "${trimmedNombre}" -> ID: ${newGrupo.id}`)
         return String(newGrupo.id)
       }
     },
@@ -5530,11 +5536,11 @@ function OnboardingTurnosCliente() {
 
   useEffect(() => {
     if (hasInitialized.current) {
-      console.log("[v0] useEffect: Already initialized, skipping")
+      debugLog("[v0] useEffect: Already initialized, skipping")
       return
     }
 
-    console.log("[v0] useEffect: Initializing for the first time")
+    debugLog("[v0] useEffect: Initializing for the first time")
     hasInitialized.current = true
     initializeOnboarding()
   }, []) // Array de dependencias vacío para ejecutar solo una vez al montar
@@ -5544,13 +5550,13 @@ function OnboardingTurnosCliente() {
     setIsInitialized(false)
     let loadedFormData: OnboardingFormData | null = null
 
-    console.log("[v0] Initial load: INICIO")
+    debugLog("[v0] Initial load: INICIO")
 
     // Read token from URL
     const urlParams = new URLSearchParams(window.location.search)
     const token = urlParams.get("token")
 
-    console.log("[v0] Initial load: Token found:", token)
+    debugLog("[v0] Initial load: Token detectado", { hasToken: Boolean(token) })
 
     if (token) {
       try {
@@ -5559,12 +5565,16 @@ function OnboardingTurnosCliente() {
 
         if (response.ok) {
           const result = await response.json()
-          console.log("[v0] Respuesta de BD:", result)
+          debugLog("[v0] Respuesta de BD recibida", {
+            success: Boolean(result?.success),
+            hasFormData: Boolean(result?.formData),
+            hasNavigationHistory: Boolean(result?.navigationHistory),
+          })
 
           if (result.success) {
             // Set onboarding ID
             setOnboardingId(token)
-            console.log("[v0] onboardingId establecido:", token)
+            debugLog("[v0] onboardingId establecido")
 
             // Set id_zoho from the database
             if (result.id_zoho) {
@@ -5573,7 +5583,7 @@ function OnboardingTurnosCliente() {
 
             // Load form data
             if (result.formData) {
-              console.log("[v0] Cargando formData:", result.formData)
+              debugLog("[v0] Cargando formData desde BD")
               // Ensure default turns are present if not in loaded data
               loadedFormData = {
                 ...result.formData,
@@ -5604,25 +5614,25 @@ function OnboardingTurnosCliente() {
 
             // Load last step
             const lastStep = Math.max(result.lastStep ?? 0, result.currentStep ?? 0)
-            console.log("[v0] lastStep:", lastStep)
+            debugLog("[v0] lastStep:", lastStep)
 
             // Load navigation history
             if (result.navigationHistory) {
-              console.log("[v0] Cargando navigationHistory:", result.navigationHistory)
+              debugLog("[v0] Cargando navigationHistory:", result.navigationHistory)
               setNavigationHistory(result.navigationHistory)
             }
 
             // Show resume message if returning to advanced step (>= 3) and not completed
-            console.log("[v0] lastStep >= 3?", lastStep >= 3)
-            console.log("[v0] lastStep < 11?", lastStep < 11)
+            debugLog("[v0] lastStep >= 3?", lastStep >= 3)
+            debugLog("[v0] lastStep < 11?", lastStep < 11)
 
             if (lastStep >= 3 && lastStep < 11) {
-              console.log("[v0] Preparando mensaje de sesión retomada")
+              debugLog("[v0] Preparando mensaje de sesión retomada")
               const stepName = steps[lastStep]?.label || `Paso ${lastStep}` // Use label from steps array
-              console.log("[v0] Step name:", stepName)
+              debugLog("[v0] Step name:", stepName)
 
               setTimeout(() => {
-                console.log("[v0] Mostrando mensaje de sesión retomada")
+                debugLog("[v0] Mostrando mensaje de sesión retomada")
                 setResumeStepName(stepName)
                 setShowResumeModal(true)
               }, 500)
@@ -5630,7 +5640,7 @@ function OnboardingTurnosCliente() {
 
             // Set current step
             setCurrentStep(lastStep)
-            console.log(
+            debugLog(
               "[v0] Initial load: Loaded step",
               lastStep,
               "with history",
@@ -5654,7 +5664,7 @@ function OnboardingTurnosCliente() {
         })
       }
     } else {
-      console.log("[v0] No token found - user must use link from /api/generate-link")
+      debugLog("[v0] No token found - user must use link from /api/generate-link")
       // If no token, it implies this is a new onboarding. We will create a new record later if needed.
       // For now, we proceed with default empty state.
     }
@@ -5663,7 +5673,7 @@ function OnboardingTurnosCliente() {
     const hydratedFormData = loadedFormData || formData
     if (token && hydratedFormData?.empresa?.grupos) {
       // If data was loaded with a token, use its groups
-      console.log("[v0] Inicializacion: Cargando grupos desde BD:", hydratedFormData.empresa.grupos.length)
+      debugLog("[v0] Inicializacion: Cargando grupos desde BD:", hydratedFormData.empresa.grupos.length)
       setGrupos(hydratedFormData.empresa.grupos)
     } else {
       // New onboarding: start with no groups until the user adds them
@@ -5677,13 +5687,13 @@ function OnboardingTurnosCliente() {
     }
 
     if (token && hydratedFormData?.trabajadores) {
-      console.log("[v0] Inicializacion: Cargando trabajadores desde BD:", hydratedFormData.trabajadores.length)
+      debugLog("[v0] Inicializacion: Cargando trabajadores desde BD:", hydratedFormData.trabajadores.length)
       setTrabajadores(hydratedFormData.trabajadores)
     }
 
     // If data was loaded, ensure workers and groups are in sync
     if (token && hydratedFormData?.trabajadores && hydratedFormData?.trabajadores.length > 0) {
-      console.log("[v0] Inicializacion: Verificando sincronizacion de trabajadores con grupos")
+      debugLog("[v0] Inicializacion: Verificando sincronizacion de trabajadores con grupos")
       updateTrabajadoresAndGrupos(
         hydratedFormData.trabajadores, // Use loaded workers
         setTrabajadores,
@@ -5720,9 +5730,9 @@ function OnboardingTurnosCliente() {
     }
 
     // Set initialization as complete
-    console.log("[v0] Setting isInitialized to true")
+    debugLog("[v0] Setting isInitialized to true")
     setIsInitialized(true)
-    console.log("[v0] isInitialized set to true")
+    debugLog("[v0] isInitialized set to true")
   }
 
   useEffect(() => {
@@ -5739,10 +5749,9 @@ function OnboardingTurnosCliente() {
     setValidationErrors([])
 
     try {
-      console.log("[v0] ===== INICIANDO FINALIZACIÓN DEL ONBOARDING =====")
-      console.log("[v0] onboardingId:", onboardingId)
-      console.log("[v0] idZoho:", idZoho)
-      console.log("[v0] formData:", formData)
+      debugLog("[v0] ===== INICIANDO FINALIZACIÓN DEL ONBOARDING =====")
+      debugLog("[v0] onboardingId:", onboardingId)
+      debugLog("[v0] idZoho disponible:", Boolean(idZoho))
 
       const newHistory = [...navigationHistory, 11]
 
@@ -5755,8 +5764,8 @@ function OnboardingTurnosCliente() {
         },
       }
 
-      console.log("[v0] handleFinalizar: Trabajadores a guardar:", trabajadores.length)
-      console.log("[v0] handleFinalizar: Grupos a guardar:", grupos.length)
+      debugLog("[v0] handleFinalizar: Trabajadores a guardar:", trabajadores.length)
+      debugLog("[v0] handleFinalizar: Grupos a guardar:", grupos.length)
       // </CHANGE>
 
       const dataToSave = {
@@ -5777,7 +5786,7 @@ function OnboardingTurnosCliente() {
 
       // Marcar como completado en BD
       if (onboardingId) {
-        console.log("[v0] handleFinalizar: Guardando en BD...")
+        debugLog("[v0] handleFinalizar: Guardando en BD...")
         const dbPromise = fetch(`/api/onboarding/${onboardingId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -5785,7 +5794,7 @@ function OnboardingTurnosCliente() {
         })
 
         await dbPromise
-        console.log("[v0] handleFinalizar: ✅ Onboarding marcado como completado en BD")
+        debugLog("[v0] handleFinalizar: ✅ Onboarding marcado como completado en BD")
       }
 
       // Preparar payload para Zoho (mismo JSON que se guardó en BD + metadata adicional)
@@ -5819,8 +5828,12 @@ function OnboardingTurnosCliente() {
         excelFile: null,
       }
 
-      console.log("[v0] handleFinalizar: Payload para Zoho:", stringifyPayload(zohoPayload, true))
-      console.log("[v0] handleFinalizar: Enviando a /api/submit-to-zoho...")
+      debugLog("[v0] handleFinalizar: Payload para Zoho preparado", {
+        eventType: zohoPayload.eventType,
+        accion: zohoPayload.accion,
+        hasIdZoho: Boolean(zohoPayload.id_zoho),
+      })
+      debugLog("[v0] handleFinalizar: Enviando a /api/submit-to-zoho...")
 
       const zohoResponse = await fetch("/api/submit-to-zoho", {
         method: "POST",
@@ -5828,13 +5841,15 @@ function OnboardingTurnosCliente() {
         body: stringifyPayload(zohoPayload),
       })
 
-      console.log("[v0] handleFinalizar: Status del envío:", zohoResponse.status, zohoResponse.statusText)
+      debugLog("[v0] handleFinalizar: Status del envío:", zohoResponse.status, zohoResponse.statusText)
 
       const zohoResult = await zohoResponse.json()
-      console.log("[v0] handleFinalizar: Respuesta de Zoho:", zohoResult)
+      debugLog("[v0] handleFinalizar: Respuesta de Zoho recibida", {
+        success: Boolean(zohoResult?.success),
+      })
 
       if (zohoResult.success) {
-        console.log("[v0] handleFinalizar: ✅ Datos enviados exitosamente a Zoho")
+        debugLog("[v0] handleFinalizar: ✅ Datos enviados exitosamente a Zoho")
       } else {
         console.error("[v0] handleFinalizar: ❌ Error al enviar a Zoho:", zohoResult.error)
         toast({
@@ -6111,7 +6126,7 @@ function OnboardingTurnosCliente() {
     try {
       if (onboardingId) {
         try {
-        console.log("[v0] goNext: Guardando avance en BD", {
+        debugLog("[v0] goNext: Guardando avance en BD", {
           step: nextStep,
           onboardingId,
         })
@@ -6128,8 +6143,8 @@ function OnboardingTurnosCliente() {
           },
         }
 
-        console.log("[v0] goNext: Trabajadores a guardar:", trabajadores.length)
-        console.log("[v0] goNext: Grupos a guardar:", grupos.length)
+        debugLog("[v0] goNext: Trabajadores a guardar:", trabajadores.length)
+        debugLog("[v0] goNext: Grupos a guardar:", grupos.length)
         // </CHANGE>
 
         const dataToSave = {
@@ -6196,11 +6211,11 @@ function OnboardingTurnosCliente() {
             variant: "destructive",
           })
         } else {
-          console.log("[v0] goNext: ✅ Guardado exitoso en BD")
+          debugLog("[v0] goNext: ✅ Guardado exitoso en BD")
         }
 
         if (zohoResponse.ok) {
-          console.log("[v0] goNext: ✅ Progreso enviado a Zoho")
+          debugLog("[v0] goNext: ✅ Progreso enviado a Zoho")
         } else {
           console.warn("[v0] goNext: ⚠️ No se pudo enviar progreso a Zoho (no bloqueante)")
         }
@@ -6312,7 +6327,7 @@ function OnboardingTurnosCliente() {
   const renderStepContent = () => {
     // Initial loading state
     if (!isInitialized) {
-      console.log("[v0] renderStepContent: Still loading, isInitialized =", isInitialized)
+      debugLog("[v0] renderStepContent: Still loading, isInitialized =", isInitialized)
       return (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -6323,7 +6338,7 @@ function OnboardingTurnosCliente() {
       )
     }
 
-    console.log("[v0] renderStepContent: Rendering step", currentStep)
+    debugLog("[v0] renderStepContent: Rendering step", currentStep)
 
     switch (currentStep) {
       case 0:
@@ -6492,15 +6507,15 @@ function OnboardingTurnosCliente() {
           </>
         )
       case 9: {
-        console.log("[v0] Renderizando AsignacionStep - Trabajadores:", trabajadores.length, "Grupos:", grupos.length)
-        console.log(
+        debugLog("[v0] Renderizando AsignacionStep - Trabajadores:", trabajadores.length, "Grupos:", grupos.length)
+        debugLog(
           "[v0] Primeros 3 trabajadores con grupoId:",
           trabajadores.slice(0, 3).map((t) => ({
             nombre: t.nombre,
             grupoId: t.grupoId,
           })),
         )
-        console.log(
+        debugLog(
           "[v0] Grupos disponibles:",
           grupos.map((g) => ({ id: g.id, nombre: g.nombre })),
         )
@@ -6742,7 +6757,7 @@ function OnboardingTurnosCliente() {
     try {
       if (onboardingId) {
         try {
-        console.log("[v0] handleWorkersDecision: Guardando decisión en BD...")
+        debugLog("[v0] handleWorkersDecision: Guardando decisión en BD...")
 
         const dataToSave = {
           formData: updatedFormData,
@@ -6790,13 +6805,13 @@ function OnboardingTurnosCliente() {
         const [dbResponse, zohoResponse] = await Promise.all([dbPromise, zohoPromise])
 
         if (dbResponse.ok) {
-          console.log("[v0] handleWorkersDecision: ✅ Decisión guardada en BD")
+          debugLog("[v0] handleWorkersDecision: ✅ Decisión guardada en BD")
         } else {
           console.error("[v0] handleWorkersDecision: Error guardando en BD", await dbResponse.text())
         }
 
         if (zohoResponse.ok) {
-          console.log("[v0] handleWorkersDecision: ✅ Decisión enviada a Zoho")
+          debugLog("[v0] handleWorkersDecision: ✅ Decisión enviada a Zoho")
         } else {
           console.warn("[v0] handleWorkersDecision: ⚠️ No se pudo enviar a Zoho")
         }
@@ -6840,7 +6855,7 @@ function OnboardingTurnosCliente() {
     try {
       if (onboardingId) {
         try {
-        console.log("[v0] handleConfigurationDecision: Guardando decisión en BD...")
+        debugLog("[v0] handleConfigurationDecision: Guardando decisión en BD...")
 
         const dataToSave = {
           formData: updatedFormData,
@@ -6888,13 +6903,13 @@ function OnboardingTurnosCliente() {
         const [dbResponse, zohoResponse] = await Promise.all([dbPromise, zohoPromise])
 
         if (dbResponse.ok) {
-          console.log("[v0] handleConfigurationDecision: ✅ Decisión guardada en BD")
+          debugLog("[v0] handleConfigurationDecision: ✅ Decisión guardada en BD")
         } else {
           console.error("[v0] handleConfigurationDecision: Error guardando en BD", await dbResponse.text())
         }
 
         if (zohoResponse.ok) {
-          console.log("[v0] handleConfigurationDecision: ✅ Decisión enviada a Zoho")
+          debugLog("[v0] handleConfigurationDecision: ✅ Decisión enviada a Zoho")
         } else {
           console.warn("[v0] handleConfigurationDecision: ⚠️ No se pudo enviar a Zoho")
         }
@@ -7139,3 +7154,4 @@ function OnboardingTurnosCliente() {
 
 // CHANGE: Adding export default for deployment
 export default OnboardingTurnosCliente
+
