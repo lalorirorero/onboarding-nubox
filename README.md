@@ -13,7 +13,7 @@ Repositorio dedicado para la variante Nubox del flujo de auto-onboarding.
 Este repositorio es independiente del repo Geo.
 
 - Repo Nubox: `https://github.com/lalorirorero/onboarding-nubox`
-- Repo Geo: `https://github.com/lalorirorero/v0-v0onboardingturnosmvp2main`
+- Repo Geo: `https://github.com/lalorirorero/onboarding-geovictoria`
 
 Regla operativa: no portar cambios entre repos sin revision explicita.
 
